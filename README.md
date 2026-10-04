@@ -1,6 +1,6 @@
 # ClipBridge
 
-Send text from a browser on your phone straight to a computer's clipboard, ready to paste anywhere. No phone app, no account, no cloud — just a small Node server on the computer and a modern React page on the phone.
+Send text from a browser on your phone straight to a computer's clipboard, ready to paste anywhere. No phone app, no account, no cloud — just a small Node server on the computer and a React page on the phone that looks like a chat, but only with your messages.
 
 Works over your LAN or over **Tailscale**.
 
@@ -40,12 +40,14 @@ macOS uses `pbcopy`, Windows uses `clip` — both work out of the box.
 
 ## Features
 
-- **One-tap resend**: every sent text is saved in the phone's history; tap it to send again.
-- **Persistent history**: stored in `localStorage`, survives browser restarts. Up to 50 entries.
-- **Delete one or all**: each entry has a × button, plus a "Clear all" option, with confirmation modals.
+- **Chat-style UI**: your sends appear as bubbles in a conversation thread, newest at the bottom, grouped by Today / Yesterday / Earlier.
+- **Swipe to reveal actions**: swipe a bubble left to reveal **Delete** and **Resend** buttons behind it.
+- **Resend**: tap a bubble or the Resend button to push that text to the clipboard again.
+- **Delete one or all**: each entry can be deleted individually; a menu in the top bar offers **Delete all**, with a confirmation modal.
+- **Persistent history**: stored in `localStorage`, survives browser restarts. Up to 50 entries. Nothing is lost unless you delete it manually.
 - **Desktop notification** on the computer when something arrives.
 - **Token auth**: a random bearer token, required on every request.
-- **Modern dark UI**: mobile-first, safe-area aware.
+- **Mobile-first dark UI**: safe-area aware, works as a home-screen web app.
 
 ## API
 
