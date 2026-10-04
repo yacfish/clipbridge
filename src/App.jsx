@@ -50,6 +50,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const taRef = useRef(null);
   const chatRef = useRef(null);
+  const appRef = useRef(null);
   const touchRef = useRef({ id: null, x: 0, y: 0, dx: 0 });
 
   useEffect(() => {
@@ -174,6 +175,57 @@ export default function App() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [history, token]);
 
+  // Grow the composer with the draft until it reaches the header. After that,
+  // the box scrolls and older lines leave at the top.
+  useEffect(() => {
+    if (!token) return undefined;
+    const vv = window.visualViewport;
+
+    const fit = () => {
+      const app = appRef.current;
+      const ta = taRef.current;
+      if (!app || !ta) return;
+      if (vv) {
+        app.style.height = `${vv.height}px`;
+        app.style.transform = `translateY(${vv.offsetTop}px)`;
+      }
+      const composer = ta.closest('.composer');
+      const bar = composer?.querySelector('.composer-bar');
+      const header = app.querySelector('.top');
+      const composerStyle = composer ? getComputedStyle(composer) : null;
+      const pad =
+        (parseFloat(composerStyle?.paddingTop) || 0) +
+        (parseFloat(composerStyle?.paddingBottom) || 0);
+      const barStyle = bar ? getComputedStyle(bar) : null;
+      const barHeight = bar
+        ? bar.offsetHeight + (parseFloat(barStyle.marginTop) || 0)
+        : 0;
+      const headerHeight = header ? header.offsetHeight : 0;
+      const max = Math.max(72, app.clientHeight - headerHeight - pad - barHeight);
+
+      ta.style.minHeight = '0px';
+      ta.style.height = '0px';
+      const needed = ta.scrollHeight;
+      ta.style.minHeight = '';
+      const next = Math.min(Math.max(needed, 72), max);
+      ta.style.height = `${next}px`;
+      ta.style.overflowY = needed > max ? 'auto' : 'hidden';
+      if (needed > max && ta.selectionStart === ta.value.length) {
+        ta.scrollTop = ta.scrollHeight;
+      }
+    };
+
+    fit();
+    vv?.addEventListener('resize', fit);
+    vv?.addEventListener('scroll', fit);
+    window.addEventListener('resize', fit);
+    return () => {
+      vv?.removeEventListener('resize', fit);
+      vv?.removeEventListener('scroll', fit);
+      window.removeEventListener('resize', fit);
+    };
+  }, [token, text]);
+
   if (!token) {
     return (
       <div className="app">
@@ -206,7 +258,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className="app" ref={appRef}>
       <header className="top">
         <div className="brand">
           <span className="dot" />
@@ -318,8 +370,8 @@ export default function App() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Type or paste text…"
-          rows={3}
-          enterKeyHint="send"
+          rows={1}
+          enterKeyHint="enter"
         />
         <div className="composer-bar">
           <span className="hint">{text.trim() ? `${text.trim().length} chars` : 'ready'}</span>
