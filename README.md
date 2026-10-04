@@ -49,6 +49,21 @@ macOS uses `pbcopy`, Windows uses `clip` — both work out of the box.
 - **Token auth**: a random bearer token, required on every request.
 - **Mobile-first dark UI**: safe-area aware, works as a home-screen web app.
 
+## Home screen icon
+
+iOS draws a letter tile until the page provides an icon. There is no icon in the repo yet.
+
+Create one opaque PNG, 180×180 pixels. No transparency and no rounded corners baked into the image: iOS turns transparent pixels black and applies its own mask. Fill the background with `#0b0f14` so it matches the app.
+
+Save it as `static/apple-touch-icon.png`. Do not put the source file in `public/`. `npm run build` empties that directory. Point Vite's `publicDir` at `static` so the build copies the PNG to `public/apple-touch-icon.png`, and add this to `index.html`:
+
+```html
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-title" content="ClipBridge" />
+```
+
+iOS caches a home-screen icon. After the file is being served, delete the existing icon and add the page to the home screen again.
+
 ## API
 
 | Method | Path | Auth | Description |

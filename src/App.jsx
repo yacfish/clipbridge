@@ -5,18 +5,22 @@ const HISTORY_KEY = 'clipbridge_history_v1';
 const MAX_HISTORY = 50;
 const SWIPE_MAX = 148; // px: two 74px action buttons
 
+function byTime(items) {
+  return [...items].sort((a, b) => a.at - b.at).slice(-MAX_HISTORY);
+}
+
 function loadHistory() {
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? byTime(parsed) : [];
   } catch {
     return [];
   }
 }
 
 function saveHistory(items) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, MAX_HISTORY)));
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(byTime(items)));
 }
 
 function getTokenFromUrl() {
@@ -45,6 +49,7 @@ export default function App() {
   const [openSwipeId, setOpenSwipeId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const taRef = useRef(null);
+  const chatRef = useRef(null);
   const touchRef = useRef({ id: null, x: 0, y: 0, dx: 0 });
 
   useEffect(() => {
@@ -92,7 +97,7 @@ export default function App() {
       const entry = { id: data.id, text: payload, at: Date.now() };
       setHistory((prev) => {
         const deduped = prev.filter((h) => h.text !== payload);
-        const next = [entry, ...deduped].slice(0, MAX_HISTORY);
+        const next = byTime([...deduped, entry]);
         saveHistory(next);
         return next;
       });
@@ -155,14 +160,19 @@ export default function App() {
     const today = new Date();
     const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
     const startOfYesterday = startOfToday - 86400000;
-    const groups = { Today: [], Yesterday: [], Earlier: [] };
-    for (const h of history) {
+    const groups = { Earlier: [], Yesterday: [], Today: [] };
+    for (const h of byTime(history)) {
       if (h.at >= startOfToday) groups.Today.push(h);
       else if (h.at >= startOfYesterday) groups.Yesterday.push(h);
       else groups.Earlier.push(h);
     }
-    return groups;
+    return ['Earlier', 'Yesterday', 'Today'].map((label) => [label, groups[label]]);
   }, [history]);
+
+  useEffect(() => {
+    const el = chatRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [history, token]);
 
   if (!token) {
     return (
@@ -239,12 +249,12 @@ export default function App() {
         </div>
       </header>
 
-      <main className="chat">
+      <main className="chat" ref={chatRef}>
         {history.length === 0 && (
           <p className="empty">Nothing sent yet. Your last {MAX_HISTORY} sends will show up here.</p>
         )}
 
-        {Object.entries(grouped).map(([label, items]) =>
+        {grouped.map(([label, items]) =>
           items.length ? (
             <div className="group" key={label}>
               <div className="group-label">{label}</div>
