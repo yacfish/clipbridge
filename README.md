@@ -4,6 +4,8 @@ Send text from a browser on your phone straight to a computer's clipboard, ready
 
 Works over your LAN or over **Tailscale**.
 
+![ClipBridge on a phone: one send, the composer, and the thread](docs/screenshots.jpg)
+
 ## Quick start
 
 ```bash
