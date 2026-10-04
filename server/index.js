@@ -8,20 +8,20 @@ import clipboardy from 'clipboardy';
 import notifier from 'node-notifier';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..);
+const ROOT = path.resolve(__dirname, '..');
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || '0.0.0.0';
 const MAX_HISTORY = 200;
 
-const configDir = path.join(os.homedir(), '.config', 'clipbridge);
-const tokenPath = path.join(configDir, 'token);
+const configDir = path.join(os.homedir(), '.config', 'clipbridge');
+const tokenPath = path.join(configDir, 'token');
 
 function loadOrCreateToken() {
   if (fs.existsSync(tokenPath)) {
     return fs.readFileSync(tokenPath, 'utf8').trim();
   }
   fs.mkdirSync(configDir, { recursive: true });
-  const token = crypto.randomBytes(24).toString('base64url);
+  const token = crypto.randomBytes(24).toString('base64url');
   fs.writeFileSync(tokenPath, token, { mode: 0o600 });
   return token;
 }
@@ -106,8 +106,8 @@ app.listen(PORT, HOST, () => {
   console.log(`Token: ${TOKEN}`);
   console.log(`Token file: ${tokenPath}`);
   for (const ip of ips) {
-    console.log(`  LAN:  http://${ip}:{PORT}/?k=${TOKEN}`);
+    console.log(`  LAN:  http://${ip}:${PORT}/?k=${TOKEN}`);
   }
-  console.log('  Tailscale: use the machine 100.x.x.x address or MagicDNS name with :8787);
+  console.log('  Tailscale: use the machine 100.x.x.x address or MagicDNS name with :8787');
   console.log('Open that URL on your phone, tap Send, and the text lands on this computer clipboard.');
 });

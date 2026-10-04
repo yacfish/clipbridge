@@ -21,11 +21,11 @@ function saveHistory(items) {
 
 function getTokenFromUrl() {
   const params = new URLSearchParams(window.location.search);
-  const k = params.get('k);
+  const k = params.get('k');
   if (k) {
     localStorage.setItem(TOKEN_KEY, k);
-    params.delete('k);
-    const next = `${window.location.protocol)//${window.location.host}${window.location.pathname}${params.toString() ? '?' + params : ''}`;
+    params.delete('k');
+    const next = `${window.location.protocol}//${window.location.host}${window.location.pathname}${params.toString() ? '?' + params : ''}`;
     window.history.replaceState(null, '', next);
   }
   return localStorage.getItem(TOKEN_KEY);
@@ -276,7 +276,7 @@ export default function App() {
                       </div>
                       <div
                         className="bubble-wrap"
-                        style={{ transform: `translateX(${offset}px)` }
+                        style={{ transform: `translateX(${offset}px)` }}
                         onTouchStart={(e) => onTouchStart(e, h.id)}
                         onTouchMove={onTouchMove}
                         onTouchEnd={onTouchEnd}
