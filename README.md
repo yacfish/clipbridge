@@ -51,9 +51,9 @@ macOS uses `pbcopy`, Windows uses `clip` — both work out of the box.
 
 ## Home screen icon
 
-iOS draws a letter tile until the page provides an icon. There is no icon in the repo yet.
+iOS draws a letter tile until the page provides an icon. The home-screen icon is `static/apple-touch-icon.png`.
 
-Create one opaque PNG, 180×180 pixels. No transparency and no rounded corners baked into the image: iOS turns transparent pixels black and applies its own mask. Fill the background with `#0b0f14` so it matches the app.
+It is one opaque PNG, 180×180 pixels. No transparency and no rounded corners baked into the image: iOS turns transparent pixels black and applies its own mask. Fill the background with `#0b0f14` so it matches the app.
 
 Save it as `static/apple-touch-icon.png`. Do not put the source file in `public/`. `npm run build` empties that directory. Point Vite's `publicDir` at `static` so the build copies the PNG to `public/apple-touch-icon.png`, and add this to `index.html`:
 
