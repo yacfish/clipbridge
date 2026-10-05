@@ -67,3 +67,7 @@ The phone UI keeps its own history in the browser; the server log is optional.
 - Each computer runs its own server. The phone just keeps one bookmark per machine.
 - The server must run inside a graphical session (not SSH) so it can reach the desktop clipboard.
 - History is per-browser: clearing site data wipes it. There is no sync between devices by design.
+
+## License
+
+MIT © 2026 Yacine Sebti. See [LICENSE](LICENSE).
