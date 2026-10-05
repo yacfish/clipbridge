@@ -275,8 +275,9 @@ export default function App() {
 
   // Pin the shell to the visual viewport with position:fixed so header, chat,
   // and composer shrink together above the soft keyboard (iOS home-screen PWA).
-  // After resizing .app, always scroll the chat fully to the bottom so the
-  // latest bubble sits against the composer (same as a swipe to the end).
+  // Only rewrite top/height when they actually change, and only pin the chat
+  // to the bottom when the shell height changes (keyboard open/close). Typing
+  // can fire visualViewport scroll with the same size; do not scroll then.
   useEffect(() => {
     const vv = window.visualViewport;
 
@@ -287,20 +288,30 @@ export default function App() {
 
     const sync = () => {
       const app = appRef.current;
+      let heightChanged = false;
 
       if (app) {
         if (vv) {
-          app.style.top = `${vv.offsetTop}px`;
-          app.style.height = `${vv.height}px`;
-        } else {
+          const nextTop = `${vv.offsetTop}px`;
+          const nextHeight = `${vv.height}px`;
+          if (app.style.top !== nextTop) {
+            app.style.top = nextTop;
+          }
+          if (app.style.height !== nextHeight) {
+            app.style.height = nextHeight;
+            heightChanged = true;
+          }
+        } else if (app.style.top !== '0px' || app.style.height !== '') {
           app.style.top = '0px';
           app.style.height = '';
+          heightChanged = true;
         }
       }
       // Mobile browsers scroll the layout viewport when focusing an input;
       // pin it so the shell offset stays correct.
       if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
 
+      if (!heightChanged) return;
       scrollChatToEnd();
       // Layout may settle one frame after the viewport resize.
       window.requestAnimationFrame(scrollChatToEnd);
@@ -323,40 +334,58 @@ export default function App() {
   }, []);
 
   // Grow the composer with the draft until it reaches the header. After that,
-  // the box scrolls and older lines leave at the top.
+  // the box scrolls and older lines leave at the top. Chat flex shrinks when
+  // the textarea grows; preserve distance-from-bottom so the last bubble stays
+  // glued to the composer (no top gap, no force-scroll on every keystroke).
+  const fitComposerRef = useRef(() => {});
+  fitComposerRef.current = () => {
+    const app = appRef.current;
+    const ta = taRef.current;
+    const chat = chatRef.current;
+    if (!app || !ta) return;
+    const composer = ta.closest('.composer');
+    const bar = composer?.querySelector('.composer-bar');
+    const header = app.querySelector('.top');
+    const composerStyle = composer ? getComputedStyle(composer) : null;
+    const pad =
+      (parseFloat(composerStyle?.paddingTop) || 0) +
+      (parseFloat(composerStyle?.paddingBottom) || 0);
+    const barStyle = bar ? getComputedStyle(bar) : null;
+    const barHeight = bar
+      ? bar.offsetHeight + (parseFloat(barStyle.marginTop) || 0)
+      : 0;
+    const headerHeight = header ? header.offsetHeight : 0;
+    const max = Math.max(72, app.clientHeight - headerHeight - pad - barHeight);
+
+    // Anchor the thread before the measure dance; height:0 briefly expands
+    // .chat and browsers may nudge scrollTop.
+    const fromBottom = chat
+      ? chat.scrollHeight - chat.scrollTop - chat.clientHeight
+      : 0;
+
+    ta.style.minHeight = '0px';
+    ta.style.height = '0px';
+    const needed = ta.scrollHeight;
+    ta.style.minHeight = '';
+    const next = Math.min(Math.max(needed, 72), max);
+    ta.style.height = `${next}px`;
+    ta.style.overflowY = needed > max ? 'auto' : 'hidden';
+    if (needed > max && ta.selectionStart === ta.value.length) {
+      ta.scrollTop = ta.scrollHeight;
+    }
+
+    if (chat) {
+      // Re-apply fromBottom after measuring so a same-line keystroke does not
+      // leave a gap. Do not assign scrollTop = scrollHeight on text changes.
+      chat.scrollTop = chat.scrollHeight - chat.clientHeight - fromBottom;
+    }
+  };
+
+  // Listeners only when token is present; do not rebind on every keystroke.
   useEffect(() => {
     if (!token) return undefined;
 
-    const fit = () => {
-      const app = appRef.current;
-      const ta = taRef.current;
-      if (!app || !ta) return;
-      const composer = ta.closest('.composer');
-      const bar = composer?.querySelector('.composer-bar');
-      const header = app.querySelector('.top');
-      const composerStyle = composer ? getComputedStyle(composer) : null;
-      const pad =
-        (parseFloat(composerStyle?.paddingTop) || 0) +
-        (parseFloat(composerStyle?.paddingBottom) || 0);
-      const barStyle = bar ? getComputedStyle(bar) : null;
-      const barHeight = bar
-        ? bar.offsetHeight + (parseFloat(barStyle.marginTop) || 0)
-        : 0;
-      const headerHeight = header ? header.offsetHeight : 0;
-      const max = Math.max(72, app.clientHeight - headerHeight - pad - barHeight);
-
-      ta.style.minHeight = '0px';
-      ta.style.height = '0px';
-      const needed = ta.scrollHeight;
-      ta.style.minHeight = '';
-      const next = Math.min(Math.max(needed, 72), max);
-      ta.style.height = `${next}px`;
-      ta.style.overflowY = needed > max ? 'auto' : 'hidden';
-      if (needed > max && ta.selectionStart === ta.value.length) {
-        ta.scrollTop = ta.scrollHeight;
-      }
-    };
-
+    const fit = () => fitComposerRef.current();
     fit();
     const vv = window.visualViewport;
     vv?.addEventListener('resize', fit);
@@ -367,6 +396,13 @@ export default function App() {
       vv?.removeEventListener('scroll', fit);
       window.removeEventListener('resize', fit);
     };
+  }, [token]);
+
+  // Refit when the draft changes. Height updates shrink .chat via flex;
+  // fitComposer preserves distance-from-bottom instead of scrolling to end.
+  useEffect(() => {
+    if (!token) return;
+    fitComposerRef.current();
   }, [token, text]);
 
   if (!token) {
