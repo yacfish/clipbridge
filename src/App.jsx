@@ -305,11 +305,23 @@ export default function App() {
     };
   }, [history, token]);
 
-  // Pin the shell to the visual viewport with position:fixed so header, chat,
-  // and composer shrink together above the soft keyboard (iOS home-screen PWA).
-  // Only rewrite top/height when they actually change, and only pin the chat
-  // to the bottom when the shell height changes (keyboard open/close). Typing
-  // can fire visualViewport scroll with the same size; do not scroll then.
+  // Drop a stale flash if its id left history (e.g. deleted) so an older row
+  // cannot keep the green border after remint/dedupe races.
+  useEffect(() => {
+    if (justSentId == null) return;
+    if (!history.some((h) => h.id === justSentId)) {
+      setJustSentId(null);
+    }
+  }, [history, justSentId]);
+
+  // Shrink the fixed shell to visualViewport.height so header, chat, and
+  // composer stay above the soft keyboard (iOS home-screen PWA). Keep top at
+  // 0 on the layout viewport — never follow visualViewport.offsetTop. On iOS,
+  // offsetTop briefly goes non-zero while the keyboard animates; rewriting
+  // top translated the whole shell down and flashed a gray gap under the
+  // status bar (in sync with the just-sent flash on resend). Only scroll the
+  // chat to the end when height actually changes; vv scroll with the same
+  // size (typing) must not force-scroll.
   useEffect(() => {
     const vv = window.visualViewport;
 
@@ -323,24 +335,24 @@ export default function App() {
       let heightChanged = false;
 
       if (app) {
+        // Always pin to the layout viewport top. Do not set top from
+        // vv.offsetTop (that caused the iOS keyboard shell-drop).
+        if (app.style.top !== '0px') {
+          app.style.top = '0px';
+        }
         if (vv) {
-          const nextTop = `${vv.offsetTop}px`;
           const nextHeight = `${vv.height}px`;
-          if (app.style.top !== nextTop) {
-            app.style.top = nextTop;
-          }
           if (app.style.height !== nextHeight) {
             app.style.height = nextHeight;
             heightChanged = true;
           }
-        } else if (app.style.top !== '0px' || app.style.height !== '') {
-          app.style.top = '0px';
+        } else if (app.style.height !== '') {
           app.style.height = '';
           heightChanged = true;
         }
       }
-      // Mobile browsers scroll the layout viewport when focusing an input;
-      // pin it so the shell offset stays correct.
+      // Kill layout-viewport scroll so the fixed shell stays aligned and
+      // visualViewport.offsetTop tends to stay ~0 during keyboard open.
       if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
 
       if (!heightChanged) return;
