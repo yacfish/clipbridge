@@ -223,7 +223,21 @@ button { font-family: inherit; }
   font-weight: 700;
   cursor: pointer;
 }
-.swipe-btn.edit { background: #4a5568; }
+.swipe-btn.edit {
+  position: relative;
+  background: #4a5568;
+}
+/* Extend Edit color ~20px under the bubble so its rounded edge sits on top (iOS Mail style) */
+.swipe-btn.edit::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: 20px;
+  background: #4a5568;
+  pointer-events: none;
+}
 .swipe-btn.resend { background: var(--accent); }
 .swipe-btn.delete { background: var(--danger); }
 
