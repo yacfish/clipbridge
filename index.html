@@ -8,6 +8,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="ClipBridge" />
+    <script>
+      try {
+        var theme = localStorage.getItem('clipbridge_theme');
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    </script>
     <title>ClipBridge</title>
   </head>
   <body>
