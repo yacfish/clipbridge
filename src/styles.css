@@ -14,6 +14,7 @@
   --accent-2: #3dd68c;
   --danger: #ff6b6b;
   --danger-soft: #2a1515;
+  --scrollbar: rgba(255, 255, 255, 0.35);
   --radius: 14px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -34,6 +35,7 @@
   --accent-2: #17864c;
   --danger: #d64545;
   --danger-soft: #fdecec;
+  --scrollbar: rgba(0, 0, 0, 0.35);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -172,12 +174,13 @@ button { font-family: inherit; }
   overflow-y: auto;
   /* Keep the scrollbar in its own lane, beside the bubbles. */
   scrollbar-gutter: stable;
+  scrollbar-color: var(--scrollbar) transparent;
   padding-right: 6px;
   padding-bottom: 12px;
 }
 .chat::-webkit-scrollbar { width: 10px; }
 .chat::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+  background: var(--scrollbar);
   border: 2px solid transparent;
   border-radius: 99px;
   background-clip: padding-box;
@@ -205,7 +208,7 @@ button { font-family: inherit; }
   right: 0;
   bottom: 0;
   display: flex;
-  width: 222px;
+  width: 148px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.08s linear;
@@ -238,7 +241,6 @@ button { font-family: inherit; }
   background: #4a5568;
   pointer-events: none;
 }
-.swipe-btn.resend { background: var(--accent); }
 .swipe-btn.delete { background: var(--danger); }
 
 .bubble-wrap {
@@ -255,8 +257,17 @@ button { font-family: inherit; }
   display: flex;
   flex-direction: column;
   gap: 6px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 .bubble:hover { border-color: var(--border-strong); background: var(--hover); }
+.bubble.just-sent {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 12px rgba(61, 214, 140, 0.35);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+:root[data-theme="light"] .bubble.just-sent {
+  box-shadow: 0 0 12px rgba(23, 134, 76, 0.3);
+}
 
 .bubble-text {
   font-size: 15px;
