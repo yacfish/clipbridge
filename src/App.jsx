@@ -105,7 +105,7 @@ export default function App() {
   };
 
   const send = async (payload) => {
-    if (!token) return;
+    if (!token || sending) return;
     setSending(true);
     try {
       const res = await fetch('/api/send', {
@@ -231,20 +231,47 @@ export default function App() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [history, token]);
 
+  // Size the whole shell to the visual viewport so the soft keyboard shrinks
+  // header + chat + composer together (history scrolls in the remaining space).
+  useEffect(() => {
+    const root = document.documentElement;
+    const vv = window.visualViewport;
+
+    const sync = () => {
+      if (vv) {
+        root.style.setProperty('--vvh', `${vv.height}px`);
+        root.style.setProperty('--vv-top', `${vv.offsetTop}px`);
+      } else {
+        root.style.setProperty('--vvh', '');
+        root.style.setProperty('--vv-top', '');
+      }
+      // Mobile browsers scroll the layout viewport when focusing an input;
+      // pin it so the shell offset stays correct.
+      if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+    };
+
+    sync();
+    vv?.addEventListener('resize', sync);
+    vv?.addEventListener('scroll', sync);
+    window.addEventListener('resize', sync);
+    return () => {
+      vv?.removeEventListener('resize', sync);
+      vv?.removeEventListener('scroll', sync);
+      window.removeEventListener('resize', sync);
+      root.style.removeProperty('--vvh');
+      root.style.removeProperty('--vv-top');
+    };
+  }, []);
+
   // Grow the composer with the draft until it reaches the header. After that,
   // the box scrolls and older lines leave at the top.
   useEffect(() => {
     if (!token) return undefined;
-    const vv = window.visualViewport;
 
     const fit = () => {
       const app = appRef.current;
       const ta = taRef.current;
       if (!app || !ta) return;
-      if (vv) {
-        app.style.height = `${vv.height}px`;
-        app.style.transform = `translateY(${vv.offsetTop}px)`;
-      }
       const composer = ta.closest('.composer');
       const bar = composer?.querySelector('.composer-bar');
       const header = app.querySelector('.top');
@@ -272,6 +299,7 @@ export default function App() {
     };
 
     fit();
+    const vv = window.visualViewport;
     vv?.addEventListener('resize', fit);
     vv?.addEventListener('scroll', fit);
     window.addEventListener('resize', fit);
@@ -436,7 +464,7 @@ export default function App() {
         <div className="composer-bar">
           <span className="hint">{text.trim() ? `${text.trim().length} chars` : 'ready'}</span>
           <button type="submit" disabled={sending || !text.trim()}>
-            {sending ? 'Sending…' : 'Send'}
+            Send
           </button>
         </div>
       </form>
