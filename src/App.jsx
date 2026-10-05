@@ -4,7 +4,7 @@ const TOKEN_KEY = 'clipbridge_token';
 const HISTORY_KEY = 'clipbridge_history_v1';
 const THEME_KEY = 'clipbridge_theme';
 const MAX_HISTORY = 50;
-const SWIPE_MAX = 148; // px: two 74px action buttons
+const SWIPE_MAX = 222; // px: three 74px action buttons
 
 function byTime(items) {
   return [...items].sort((a, b) => a.at - b.at).slice(-MAX_HISTORY);
@@ -147,6 +147,24 @@ export default function App() {
     });
     setOpenSwipeId(null);
     setConfirm(null);
+  };
+
+  // Load an entry into the composer for editing. Replaces any draft; does not send.
+  const editEntry = (entryText) => {
+    setOpenSwipeId(null);
+    setText(entryText);
+    window.requestAnimationFrame(() => {
+      const ta = taRef.current;
+      if (!ta) return;
+      ta.focus();
+      ta.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const len = entryText.length;
+      try {
+        ta.setSelectionRange(len, len);
+      } catch {
+        /* ignore */
+      }
+    });
   };
 
   const clearAll = () => {
@@ -349,6 +367,14 @@ export default function App() {
                   return (
                     <li key={h.id} className={open ? 'swipe-row open' : 'swipe-row'}>
                       <div className="swipe-actions" aria-hidden="true">
+                        <button
+                          className="swipe-btn edit"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            editEntry(h.text);
+                          }}>
+                          Edit
+                        </button>
                         <button
                           className="swipe-btn resend"
                           onClick={(e) => {

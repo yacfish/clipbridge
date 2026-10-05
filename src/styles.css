@@ -205,7 +205,7 @@ button { font-family: inherit; }
   right: 0;
   bottom: 0;
   display: flex;
-  width: 148px;
+  width: 222px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.08s linear;
@@ -223,6 +223,7 @@ button { font-family: inherit; }
   font-weight: 700;
   cursor: pointer;
 }
+.swipe-btn.edit { background: #4a5568; }
 .swipe-btn.resend { background: var(--accent); }
 .swipe-btn.delete { background: var(--danger); }
 
