@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 const TOKEN_KEY = 'clipbridge_token';
 const HISTORY_KEY = 'clipbridge_history_v1';
+const THEME_KEY = 'clipbridge_theme';
 const MAX_HISTORY = 50;
 const SWIPE_MAX = 148; // px: two 74px action buttons
 
@@ -35,6 +36,16 @@ function getTokenFromUrl() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+function loadTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch {
+    /* ignore */
+  }
+  return 'dark';
+}
+
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
@@ -48,10 +59,20 @@ export default function App() {
   const [confirm, setConfirm] = useState(null);
   const [openSwipeId, setOpenSwipeId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [theme, setTheme] = useState(loadTheme);
   const taRef = useRef(null);
   const chatRef = useRef(null);
   const appRef = useRef(null);
   const touchRef = useRef({ id: null, x: 0, y: 0, dx: 0 });
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* ignore */
+    }
+  }, [theme]);
 
   useEffect(() => {
     if (taRef.current) taRef.current.focus();
@@ -132,6 +153,12 @@ export default function App() {
     setHistory([]);
     saveHistory([]);
     setConfirm(null);
+    setMenuOpen(false);
+  };
+
+  const disconnect = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    setToken(null);
     setMenuOpen(false);
   };
 
@@ -279,6 +306,16 @@ export default function App() {
             {menuOpen && (
               <div className="dropdown" onClick={(e) => e.stopPropagation()}>
                 <button
+                  className="dropdown-item"
+                  role="switch"
+                  aria-checked={theme === 'dark'}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
+                  }}>
+                  {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+                </button>
+                <button
                   className="dropdown-item danger"
                   disabled={history.length === 0}
                   onClick={() => {
@@ -287,17 +324,12 @@ export default function App() {
                   }}>
                   Delete all
                 </button>
+                <button className="dropdown-item" onClick={disconnect}>
+                  Disconnect
+                </button>
               </div>
             )}
           </div>
-          <button
-            className="ghost"
-            onClick={() => {
-              localStorage.removeItem(TOKEN_KEY);
-              setToken(null);
-            }}>
-            Sign out
-          </button>
         </div>
       </header>
 
@@ -315,7 +347,7 @@ export default function App() {
                   const open = openSwipeId === h.id;
                   const offset = open ? -SWIPE_MAX : 0;
                   return (
-                    <li key={h.id} className="swipe-row">
+                    <li key={h.id} className={open ? 'swipe-row open' : 'swipe-row'}>
                       <div className="swipe-actions" aria-hidden="true">
                         <button
                           className="swipe-btn resend"
@@ -338,7 +370,7 @@ export default function App() {
                       </div>
                       <div
                         className="bubble-wrap"
-                        style={{ transform: `translateX(${offset}px)` }}
+                        style={offset ? { transform: `translateX(${offset}px)` } : undefined}
                         onTouchStart={(e) => onTouchStart(e, h.id)}
                         onTouchMove={onTouchMove}
                         onTouchEnd={onTouchEnd}
