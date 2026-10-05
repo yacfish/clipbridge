@@ -205,8 +205,7 @@ button { font-family: inherit; }
   right: 0;
   bottom: 0;
   display: flex;
-  /* 222px reveal + 20px underlap so Edit tucks under the bubble's rounded edge */
-  width: 242px;
+  width: 222px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.08s linear;
@@ -217,27 +216,30 @@ button { font-family: inherit; }
 }
 
 .swipe-btn {
+  flex: 1;
   border: none;
   color: #fff;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  box-sizing: border-box;
 }
-/* Edit is 74px revealed + 20px underlap; padding keeps the label in the revealed zone */
 .swipe-btn.edit {
-  flex: 0 0 94px;
-  padding-left: 20px;
+  position: relative;
   background: #4a5568;
 }
-.swipe-btn.resend {
-  flex: 0 0 74px;
-  background: var(--accent);
+/* Extend Edit color ~20px under the bubble so its rounded edge sits on top (iOS Mail style) */
+.swipe-btn.edit::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: 20px;
+  background: #4a5568;
+  pointer-events: none;
 }
-.swipe-btn.delete {
-  flex: 0 0 74px;
-  background: var(--danger);
-}
+.swipe-btn.resend { background: var(--accent); }
+.swipe-btn.delete { background: var(--danger); }
 
 .bubble-wrap {
   position: relative;
