@@ -233,21 +233,18 @@ export default function App() {
 
   // Pin the shell to the visual viewport with position:fixed so header, chat,
   // and composer shrink together above the soft keyboard (iOS home-screen PWA).
-  // Before applying the new height: if the chat was not overflowing, scroll to
-  // the latest bubble so it sits above the composer; if it was overflowing,
-  // preserve distance-from-bottom so the same bubbles stay relative to it.
+  // After resizing .app, always scroll the chat fully to the bottom so the
+  // latest bubble sits against the composer (same as a swipe to the end).
   useEffect(() => {
     const vv = window.visualViewport;
 
+    const scrollChatToEnd = () => {
+      const chat = chatRef.current;
+      if (chat) chat.scrollTop = chat.scrollHeight;
+    };
+
     const sync = () => {
       const app = appRef.current;
-      const chat = chatRef.current;
-      const wasOverflowing = chat
-        ? chat.scrollHeight > chat.clientHeight + 1
-        : false;
-      const fromBottom = chat
-        ? chat.scrollHeight - chat.scrollTop - chat.clientHeight
-        : 0;
 
       if (app) {
         if (vv) {
@@ -262,13 +259,9 @@ export default function App() {
       // pin it so the shell offset stays correct.
       if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
 
-      if (chat) {
-        if (!wasOverflowing) {
-          chat.scrollTop = chat.scrollHeight;
-        } else {
-          chat.scrollTop = chat.scrollHeight - chat.clientHeight - fromBottom;
-        }
-      }
+      scrollChatToEnd();
+      // Layout may settle one frame after the viewport resize.
+      window.requestAnimationFrame(scrollChatToEnd);
     };
 
     sync();
