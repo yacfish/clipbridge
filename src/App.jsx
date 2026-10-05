@@ -64,6 +64,7 @@ export default function App() {
   const taRef = useRef(null);
   const chatRef = useRef(null);
   const appRef = useRef(null);
+  const menuRef = useRef(null);
   const touchRef = useRef({ id: null, x: 0, y: 0, dx: 0 });
   const justSentTimer = useRef(null);
 
@@ -80,15 +81,25 @@ export default function App() {
     if (taRef.current) taRef.current.focus();
   }, [token]);
 
-  // Close swipe / menu when tapping elsewhere
+  // Close swipe rows when tapping elsewhere (bubble clicks stopPropagation).
   useEffect(() => {
-    const onDoc = () => {
-      setOpenSwipeId(null);
-      setMenuOpen(false);
-    };
+    const onDoc = () => setOpenSwipeId(null);
     document.addEventListener('click', onDoc);
     return () => document.removeEventListener('click', onDoc);
   }, []);
+
+  // Close the top menu on any outside tap. Use capture so stopPropagation
+  // on bubbles or the composer cannot keep the menu open.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onPointerDown = (e) => {
+      const wrap = menuRef.current;
+      if (wrap && wrap.contains(e.target)) return;
+      setMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => document.removeEventListener('pointerdown', onPointerDown, true);
+  }, [menuOpen]);
 
   const flash = (kind, message) => {
     setStatus({ kind, message });
@@ -366,7 +377,7 @@ export default function App() {
           ClipBridge
         </div>
         <div className="top-actions">
-          <div className="menu-wrap">
+          <div className="menu-wrap" ref={menuRef}>
             <button
               className="icon-btn"
               aria-label="Menu"
