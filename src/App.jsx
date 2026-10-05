@@ -238,8 +238,39 @@ export default function App() {
   }, [history]);
 
   useEffect(() => {
-    const el = chatRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    const chat = chatRef.current;
+    if (!chat) return undefined;
+
+    const scrollToEnd = () => {
+      chat.scrollTop = chat.scrollHeight;
+    };
+
+    // Immediate scroll for the new history entry.
+    scrollToEnd();
+
+    // After layout (new bubble, just-sent styles, composer resize from a
+    // cleared draft), scroll again so the newest bubble is fully visible,
+    // including chat padding. Double rAF waits for paint; a short timeout
+    // covers any late height settle. Keyboard sync keeps its own scroll.
+    let cancelled = false;
+    let timeoutId = 0;
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        scrollToEnd();
+        const rows = chat.querySelectorAll('.swipe-row');
+        const last = rows[rows.length - 1];
+        if (last) last.scrollIntoView({ block: 'end', inline: 'nearest' });
+        timeoutId = window.setTimeout(() => {
+          if (!cancelled) scrollToEnd();
+        }, 50);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
   }, [history, token]);
 
   // Pin the shell to the visual viewport with position:fixed so header, chat,
