@@ -231,23 +231,36 @@ export default function App() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [history, token]);
 
-  // Size the whole shell to the visual viewport so the soft keyboard shrinks
-  // header + chat + composer together (history scrolls in the remaining space).
+  // Pin the shell to the visual viewport with position:fixed so header, chat,
+  // and composer shrink together above the soft keyboard (iOS home-screen PWA).
+  // Preserve distance-from-bottom so the same bubbles stay above the composer
+  // when the keyboard opens or closes (no jump, no force-scroll).
   useEffect(() => {
-    const root = document.documentElement;
     const vv = window.visualViewport;
 
     const sync = () => {
-      if (vv) {
-        root.style.setProperty('--vvh', `${vv.height}px`);
-        root.style.setProperty('--vv-top', `${vv.offsetTop}px`);
-      } else {
-        root.style.setProperty('--vvh', '');
-        root.style.setProperty('--vv-top', '');
+      const app = appRef.current;
+      const chat = chatRef.current;
+      const fromBottom = chat
+        ? chat.scrollHeight - chat.scrollTop - chat.clientHeight
+        : 0;
+
+      if (app) {
+        if (vv) {
+          app.style.top = `${vv.offsetTop}px`;
+          app.style.height = `${vv.height}px`;
+        } else {
+          app.style.top = '0px';
+          app.style.height = '';
+        }
       }
       // Mobile browsers scroll the layout viewport when focusing an input;
       // pin it so the shell offset stays correct.
       if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+
+      if (chat) {
+        chat.scrollTop = chat.scrollHeight - chat.clientHeight - fromBottom;
+      }
     };
 
     sync();
@@ -258,8 +271,11 @@ export default function App() {
       vv?.removeEventListener('resize', sync);
       vv?.removeEventListener('scroll', sync);
       window.removeEventListener('resize', sync);
-      root.style.removeProperty('--vvh');
-      root.style.removeProperty('--vv-top');
+      const app = appRef.current;
+      if (app) {
+        app.style.top = '';
+        app.style.height = '';
+      }
     };
   }, []);
 
@@ -312,7 +328,7 @@ export default function App() {
 
   if (!token) {
     return (
-      <div className="app">
+      <div className="app" ref={appRef}>
         <header className="top">
           <div className="brand">
             <span className="dot" />

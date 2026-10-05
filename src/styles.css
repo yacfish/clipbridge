@@ -52,15 +52,19 @@ body {
 }
 
 .app {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
   max-width: 640px;
   margin: 0 auto;
-  height: var(--vvh, 100%);
+  width: 100%;
+  height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
   padding: 0 16px 0;
   overflow: hidden;
-  transform: translateY(var(--vv-top, 0px));
 }
 
 /* ---------- top bar ---------- */
@@ -70,8 +74,8 @@ body {
   justify-content: space-between;
   /* Home-screen mode draws under the status bar. Keep the controls below it. */
   padding: calc(12px + env(safe-area-inset-top, 0px)) 0 10px;
-  position: sticky;
-  top: 0;
+  position: relative;
+  flex-shrink: 0;
   z-index: 20;
 }
 
@@ -295,10 +299,10 @@ button { font-family: inherit; }
   text-align: center;
 }
 
-/* ---------- composer (fixed bottom) ---------- */
+/* ---------- composer (flex child at bottom of .app) ---------- */
 .composer {
-  position: sticky;
-  bottom: 0;
+  position: relative;
+  flex-shrink: 0;
   background: linear-gradient(0deg, var(--bg) 75%, var(--bg-fade));
   padding-top: 10px;
   /* Clear the home indicator only. The bar background fills that inset. */
