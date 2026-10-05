@@ -10,11 +10,41 @@ function byTime(items) {
   return [...items].sort((a, b) => a.at - b.at).slice(-MAX_HISTORY);
 }
 
+/** Stable unique id for history rows (React keys + just-sent flash). */
+function newEntryId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `cb-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Remint duplicate/missing ids so older localStorage rows cannot share one flash. */
+function withUniqueIds(items) {
+  const seen = new Set();
+  let changed = false;
+  const next = items.map((h) => {
+    if (h.id != null && h.id !== '' && !seen.has(h.id)) {
+      seen.add(h.id);
+      return h;
+    }
+    changed = true;
+    let id = newEntryId();
+    while (seen.has(id)) id = newEntryId();
+    seen.add(id);
+    return { ...h, id };
+  });
+  return changed ? next : items;
+}
+
 function loadHistory() {
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? byTime(parsed) : [];
+    if (!Array.isArray(parsed)) return [];
+    const sorted = byTime(parsed);
+    const fixed = withUniqueIds(sorted);
+    if (fixed !== sorted) saveHistory(fixed);
+    return fixed;
   } catch {
     return [];
   }
@@ -106,11 +136,21 @@ export default function App() {
     window.setTimeout(() => setStatus(null), 2600);
   };
 
-  const flashBubble = (id) => {
+  // Drop a pending clear on unmount so it cannot fire against a new mount.
+  useEffect(() => () => {
     if (justSentTimer.current) window.clearTimeout(justSentTimer.current);
+  }, []);
+
+  const flashBubble = (id) => {
+    if (id == null) return;
+    if (justSentTimer.current) {
+      window.clearTimeout(justSentTimer.current);
+      justSentTimer.current = null;
+    }
     setJustSentId(id);
     justSentTimer.current = window.setTimeout(() => {
-      setJustSentId(null);
+      // Only clear if this flash is still the active one.
+      setJustSentId((cur) => (cur === id ? null : cur));
       justSentTimer.current = null;
     }, 750);
   };
@@ -138,7 +178,8 @@ export default function App() {
         }
         return;
       }
-      const entry = { id: data.id, text: payload, at: Date.now() };
+      // Client-unique id: server seq resets on restart and collides in localStorage.
+      const entry = { id: newEntryId(), text: payload, at: Date.now() };
       setHistory((prev) => {
         const deduped = prev.filter((h) => h.text !== payload);
         const next = byTime([...deduped, entry]);

@@ -46,7 +46,6 @@ function auth(req, res, next) {
 }
 
 let history = [];
-let seq = 0;
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
@@ -61,8 +60,8 @@ app.post('/api/send', auth, async (req, res) => {
     console.error('clipboard write failed:', err.message);
     return res.status(500).json({ error: 'clipboard write failed: ' + err.message });
   }
-  seq += 1;
-  const entry = { id: seq, text, at: Date.now() };
+  // UUID so ids stay unique across server restarts (seq reused and collided in the UI).
+  const entry = { id: crypto.randomUUID(), text, at: Date.now() };
   history.unshift(entry);
   if (history.length > MAX_HISTORY) history.pop();
 
