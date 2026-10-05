@@ -4,7 +4,7 @@ const TOKEN_KEY = 'clipbridge_token';
 const HISTORY_KEY = 'clipbridge_history_v1';
 const THEME_KEY = 'clipbridge_theme';
 const MAX_HISTORY = 50;
-const SWIPE_MAX = 222; // px: three 74px action buttons
+const SWIPE_MAX = 148; // px: two 74px action buttons
 
 function byTime(items) {
   return [...items].sort((a, b) => a.at - b.at).slice(-MAX_HISTORY);
@@ -58,12 +58,14 @@ export default function App() {
   const [sending, setSending] = useState(false);
   const [confirm, setConfirm] = useState(null);
   const [openSwipeId, setOpenSwipeId] = useState(null);
+  const [justSentId, setJustSentId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [theme, setTheme] = useState(loadTheme);
   const taRef = useRef(null);
   const chatRef = useRef(null);
   const appRef = useRef(null);
   const touchRef = useRef({ id: null, x: 0, y: 0, dx: 0 });
+  const justSentTimer = useRef(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -91,6 +93,15 @@ export default function App() {
   const flash = (kind, message) => {
     setStatus({ kind, message });
     window.setTimeout(() => setStatus(null), 2600);
+  };
+
+  const flashBubble = (id) => {
+    if (justSentTimer.current) window.clearTimeout(justSentTimer.current);
+    setJustSentId(id);
+    justSentTimer.current = window.setTimeout(() => {
+      setJustSentId(null);
+      justSentTimer.current = null;
+    }, 750);
   };
 
   const send = async (payload) => {
@@ -124,7 +135,7 @@ export default function App() {
         return next;
       });
       setText('');
-      flash('ok', 'Sent — on the computer clipboard now.');
+      flashBubble(entry.id);
     } catch {
       flash('error', 'Network error — is the server running?');
     } finally {
@@ -376,15 +387,6 @@ export default function App() {
                           Edit
                         </button>
                         <button
-                          className="swipe-btn resend"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenSwipeId(null);
-                            send(h.text);
-                          }}>
-                          Resend
-                        </button>
-                        <button
                           className="swipe-btn delete"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -408,7 +410,7 @@ export default function App() {
                             send(h.text);
                           }
                         }}>
-                        <div className="bubble">
+                        <div className={justSentId === h.id ? 'bubble just-sent' : 'bubble'}>
                           <span className="bubble-text">{h.text}</span>
                           <span className="bubble-time">{formatTime(h.at)}</span>
                         </div>
@@ -439,7 +441,7 @@ export default function App() {
         </div>
       </form>
 
-      {status && <div className={`toast ${status.kind}`}>{status.message}</div>}
+      {status?.kind === 'error' && <div className={`toast ${status.kind}`}>{status.message}</div>}
 
       {confirm && (
         <div className="modal-backdrop" onClick={() => setConfirm(null)} role="presentation">

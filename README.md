@@ -43,9 +43,9 @@ macOS uses `pbcopy`, Windows uses `clip` — both work out of the box.
 ## Features
 
 - **Chat-style UI**: your sends appear as bubbles in a conversation thread, newest at the bottom, grouped by Today / Yesterday / Earlier.
-- **Swipe to reveal actions**: swipe a bubble left to reveal **Edit**, **Resend**, and **Delete** buttons behind it.
+- **Swipe to reveal actions**: swipe a bubble left to reveal **Edit** and **Delete** buttons behind it.
 - **Edit**: load that entry into the composer so you can change it before sending (replaces any draft; does not auto-send).
-- **Resend**: tap a bubble or the Resend button to push that text to the clipboard again.
+- **Resend**: tap a bubble to push that text to the clipboard again (the bubble flashes green briefly on success).
 - **Delete one or all**: each entry can be deleted individually; a menu in the top bar offers **Delete all**, with a confirmation modal.
 - **Persistent history**: stored in `localStorage`, survives browser restarts. Up to 50 entries. Nothing is lost unless you delete it manually.
 - **Desktop notification** on the computer when something arrives.
