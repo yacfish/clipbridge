@@ -205,6 +205,7 @@ button { font-family: inherit; }
   margin-bottom: 10px;
   overflow: hidden;
   border-radius: 14px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .swipe-actions {
@@ -251,6 +252,12 @@ button { font-family: inherit; }
 .bubble-wrap {
   position: relative;
   transition: transform 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+.bubble-wrap:focus,
+.bubble-wrap:focus-visible {
+  outline: none;
 }
 
 .bubble {
@@ -263,8 +270,17 @@ button { font-family: inherit; }
   flex-direction: column;
   gap: 6px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
-.bubble:hover { border-color: var(--border-strong); background: var(--hover); }
+.bubble:focus,
+.bubble:focus-visible {
+  outline: none;
+}
+/* Only real pointer hover — iOS sticky :hover after tap looked like a pale blue accent. */
+@media (hover: hover) and (pointer: fine) {
+  .bubble:hover { border-color: var(--border-strong); background: var(--hover); }
+}
 .bubble.just-sent {
   border-color: #4dff9a;
   background: rgba(61, 214, 140, 0.22);

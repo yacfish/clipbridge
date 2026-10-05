@@ -282,35 +282,26 @@ export default function App() {
     const chat = chatRef.current;
     if (!chat) return undefined;
 
+    // Pin via .chat scrollTop only. scrollIntoView on the last row fights
+    // scrollTop (and can scroll ancestors / visualViewport), which caused a
+    // visible down-then-up bounce on resend when a middle row is removed and
+    // a new one is appended.
     const scrollToEnd = () => {
       chat.scrollTop = chat.scrollHeight;
     };
 
-    // Immediate scroll for the new history entry.
     scrollToEnd();
 
-    // After layout (new bubble, just-sent styles, composer resize from a
-    // cleared draft), scroll again so the newest bubble is fully visible,
-    // including chat padding. Double rAF waits for paint; a short timeout
-    // covers any late height settle. Keyboard sync keeps its own scroll.
+    // One post-layout pass so the new bubble, just-sent styles, and composer
+    // resize from setText('') are included. Keyboard sync keeps its own scroll.
     let cancelled = false;
-    let timeoutId = 0;
     window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        if (cancelled) return;
-        scrollToEnd();
-        const rows = chat.querySelectorAll('.swipe-row');
-        const last = rows[rows.length - 1];
-        if (last) last.scrollIntoView({ block: 'end', inline: 'nearest' });
-        timeoutId = window.setTimeout(() => {
-          if (!cancelled) scrollToEnd();
-        }, 50);
-      });
+      if (cancelled) return;
+      scrollToEnd();
     });
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timeoutId);
     };
   }, [history, token]);
 
