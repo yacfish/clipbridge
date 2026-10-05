@@ -156,9 +156,9 @@ export default function App() {
 
   const onSubmit = (e) => {
     e.preventDefault();
-    const t = text.trim();
-    if (!t) return;
-    send(t);
+    // Reject whitespace-only sends, but keep intentional blank lines in the payload.
+    if (!text.trim()) return;
+    send(text);
   };
 
   const removeOne = (id) => {
