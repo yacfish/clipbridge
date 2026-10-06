@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 const TOKEN_KEY = 'clipbridge_token';
 const HISTORY_KEY = 'clipbridge_history_v1';
 const THEME_KEY = 'clipbridge_theme';
+const AUTO_PASTE_KEY = 'clipbridge_auto_paste';
 const MAX_HISTORY = 50;
 const SWIPE_MAX = 148; // px: two 74px action buttons
 
@@ -76,6 +77,14 @@ function loadTheme() {
   return 'dark';
 }
 
+function loadAutoPaste() {
+  try {
+    return localStorage.getItem(AUTO_PASTE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
@@ -91,12 +100,14 @@ export default function App() {
   const [justSentId, setJustSentId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [theme, setTheme] = useState(loadTheme);
+  const [autoPaste, setAutoPaste] = useState(loadAutoPaste);
   const taRef = useRef(null);
   const chatRef = useRef(null);
   const appRef = useRef(null);
   const menuRef = useRef(null);
   const touchRef = useRef({ id: null, x: 0, y: 0, dx: 0 });
   const justSentTimer = useRef(null);
+  const statusTimer = useRef(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -106,6 +117,14 @@ export default function App() {
       /* ignore */
     }
   }, [theme]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(AUTO_PASTE_KEY, autoPaste ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  }, [autoPaste]);
 
   useEffect(() => {
     if (taRef.current) taRef.current.focus();
@@ -131,14 +150,19 @@ export default function App() {
     return () => document.removeEventListener('pointerdown', onPointerDown, true);
   }, [menuOpen]);
 
-  const flash = (kind, message) => {
+  const flash = (kind, message, ms = 2600) => {
+    if (statusTimer.current) window.clearTimeout(statusTimer.current);
     setStatus({ kind, message });
-    window.setTimeout(() => setStatus(null), 2600);
+    statusTimer.current = window.setTimeout(() => {
+      setStatus(null);
+      statusTimer.current = null;
+    }, ms);
   };
 
   // Drop a pending clear on unmount so it cannot fire against a new mount.
   useEffect(() => () => {
     if (justSentTimer.current) window.clearTimeout(justSentTimer.current);
+    if (statusTimer.current) window.clearTimeout(statusTimer.current);
   }, []);
 
   const flashBubble = (id) => {
@@ -165,7 +189,7 @@ export default function App() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ text: payload }),
+        body: JSON.stringify({ text: payload, paste: autoPaste }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -188,6 +212,7 @@ export default function App() {
       });
       setText('');
       flashBubble(entry.id);
+      if (data.pasteError) flash('error', data.pasteError, 8000);
     } catch {
       flash('error', 'Network error — is the server running?');
     } finally {
@@ -502,6 +527,14 @@ export default function App() {
             {menuOpen && (
               <div className="dropdown" onClick={(e) => e.stopPropagation()}>
                 <button
+                  className="dropdown-item switch-row"
+                  role="switch"
+                  aria-checked={autoPaste}
+                  onClick={() => setAutoPaste((on) => !on)}>
+                  Auto paste
+                  <span className={autoPaste ? 'switch on' : 'switch'} aria-hidden="true" />
+                </button>
+                <button
                   className="dropdown-item"
                   role="switch"
                   aria-checked={theme === 'dark'}
@@ -591,6 +624,8 @@ export default function App() {
         )}
       </main>
 
+      {status?.kind === 'error' && <div className={`toast ${status.kind}`}>{status.message}</div>}
+
       <form className="composer" onSubmit={onSubmit} onClick={(e) => e.stopPropagation()}>
         <textarea
           ref={taRef}
@@ -607,8 +642,6 @@ export default function App() {
           </button>
         </div>
       </form>
-
-      {status?.kind === 'error' && <div className={`toast ${status.kind}`}>{status.message}</div>}
 
       {confirm && (
         <div className="modal-backdrop" onClick={() => setConfirm(null)} role="presentation">
