@@ -3,9 +3,13 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import crypto from 'crypto';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { fileURLToPath } from 'url';
 import clipboardy from 'clipboardy';
 import notifier from 'node-notifier';
+
+const execFileAsync = promisify(execFile);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -27,6 +31,65 @@ function loadOrCreateToken() {
 }
 
 const TOKEN = loadOrCreateToken();
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Run a command. Missing binaries return false so callers can try the next one. */
+async function runPasteCommand(cmd, args) {
+  try {
+    await execFileAsync(cmd, args, { timeout: 4000 });
+    return true;
+  } catch (err) {
+    if (err.code === 'ENOENT') return false;
+    throw err;
+  }
+}
+
+/**
+ * Paste the clipboard into the focused app. macOS uses the physical V key
+ * (key code 9) so Cmd+V still pastes on non-US layouts.
+ */
+async function pasteClipboard() {
+  // Let the pasteboard settle before the keystroke.
+  await sleep(120);
+  let pasted = false;
+  if (process.platform === 'darwin') {
+    pasted = await runPasteCommand('osascript', [
+      '-e',
+      'tell application "System Events" to key code 9 using command down',
+    ]);
+  } else if (process.platform === 'win32') {
+    pasted = await runPasteCommand('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('^v')",
+    ]);
+  } else {
+    pasted = await runPasteCommand('wtype', ['-M', 'ctrl', '-k', 'v', '-m', 'ctrl']);
+    if (!pasted) pasted = await runPasteCommand('xdotool', ['key', '--clearmodifiers', 'ctrl+v']);
+  }
+  if (pasted) return;
+  const err = new Error('paste helper missing');
+  err.code = 'ENOENT';
+  throw err;
+}
+
+function pasteFailureMessage(err) {
+  const detail = `${err.stderr || ''} ${err.message || ''}`;
+  if (/1002|not allowed to send keystrokes|assistive access|-1719/i.test(detail)) {
+    return 'Copied. To auto paste, allow Accessibility for the app that launches ClipBridge (System Settings → Privacy & Security → Accessibility).';
+  }
+  if (err.code === 'ENOENT') {
+    if (process.platform === 'linux') {
+      return 'Copied, but paste needs wtype (Wayland) or xdotool (X11) on this computer.';
+    }
+    return 'Copied, but the paste command is not available on this computer.';
+  }
+  return 'Copied to the clipboard, but the paste keystroke failed.';
+}
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -60,6 +123,17 @@ app.post('/api/send', auth, async (req, res) => {
     console.error('clipboard write failed:', err.message);
     return res.status(500).json({ error: 'clipboard write failed: ' + err.message });
   }
+  // Paste before the notification so a banner cannot steal the keystroke.
+  let pasteError = null;
+  if (req.body?.paste === true) {
+    try {
+      await pasteClipboard();
+    } catch (err) {
+      console.error('paste failed:', err.stderr || err.message);
+      pasteError = pasteFailureMessage(err);
+    }
+  }
+
   // UUID so ids stay unique across server restarts (seq reused and collided in the UI).
   const entry = { id: crypto.randomUUID(), text, at: Date.now() };
   history.unshift(entry);
@@ -76,7 +150,7 @@ app.post('/api/send', auth, async (req, res) => {
   } catch {
     // notifications are best-effort
   }
-  res.json({ ok: true, id: entry.id });
+  res.json({ ok: true, id: entry.id, pasteError });
 });
 
 app.get('/api/history', auth, (_req, res) => {

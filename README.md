@@ -46,6 +46,7 @@ macOS uses `pbcopy`, Windows uses `clip` — both work out of the box.
 - **Swipe to reveal actions**: swipe a bubble left to reveal **Edit** and **Delete** buttons behind it.
 - **Edit**: load that entry into the composer so you can change it before sending (replaces any draft; does not auto-send).
 - **Resend**: tap a bubble to push that text to the clipboard again (the bubble flashes green briefly on success).
+- **Auto paste**: a menu toggle, off by default. When it is on, each send is pasted into the focused app on the computer (Cmd+V / Ctrl+V) right after the clipboard update. On macOS the app running ClipBridge needs Accessibility permission.
 - **Delete one or all**: each entry can be deleted individually; a menu in the top bar offers **Delete all**, with a confirmation modal.
 - **Persistent history**: stored in `localStorage`, survives browser restarts. Up to 50 entries. Nothing is lost unless you delete it manually.
 - **Desktop notification** on the computer when something arrives.
@@ -56,7 +57,7 @@ macOS uses `pbcopy`, Windows uses `clip` — both work out of the box.
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| `POST` | `/api/send` | Bearer token | Body: `{ "text": "..." }`. Writes to clipboard. |
+| `POST` | `/api/send` | Bearer token | Body: `{ "text": "...", "paste": false }`. Writes to clipboard. `paste: true` also sends a paste keystroke. |
 | `GET` | `/api/health` | no | Liveness check. |
 | `GET` | `/api/history` | Bearer token | Server-side send log (last 200). |
 

@@ -150,7 +150,7 @@ button { font-family: inherit; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
-  min-width: 160px;
+  min-width: 200px;
   box-shadow: 0 12px 30px rgba(0,0,0,0.45);
   overflow: hidden;
   z-index: 30;
@@ -170,6 +170,39 @@ button { font-family: inherit; }
 .dropdown-item:hover { background: var(--hover); }
 .dropdown-item.danger { color: var(--danger); }
 .dropdown-item:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.dropdown-item.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.switch {
+  width: 36px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  position: relative;
+  flex-shrink: 0;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 0.15s ease;
+}
+.switch.on { background: var(--accent-2); }
+.switch.on::after {
+  background: #fff;
+  transform: translateX(14px);
+}
 
 /* ---------- chat thread ---------- */
 .chat {
@@ -368,10 +401,12 @@ button { font-family: inherit; }
 
 /* ---------- toast ---------- */
 .toast {
-  margin-top: 10px;
+  flex-shrink: 0;
+  margin-bottom: 8px;
   padding: 10px 14px;
   border-radius: 10px;
   font-size: 14px;
+  line-height: 1.4;
   animation: pop 0.25s ease;
 }
 .toast.ok { background: #12301f; color: var(--accent-2); border: 1px solid #1d4a32; }
